@@ -3356,6 +3356,34 @@
             Item.prototype.run = function () {
                 this.fun.apply(null, this.array);
             };
+            var title = 'browser';
+            var platform = 'browser';
+            var browser = true;
+            var env = {};
+            var argv = [];
+            var version = ''; // empty string to avoid regexp issues
+            var versions = {};
+            var release = {};
+            var config = {};
+
+            function noop() {}
+
+            var on = noop;
+            var addListener = noop;
+            var once = noop;
+            var off = noop;
+            var removeListener = noop;
+            var removeAllListeners = noop;
+            var emit = noop;
+
+            function binding(name) {
+                throw new Error('process.binding is not supported');
+            }
+
+            function cwd () { return '/' }
+            function chdir (dir) {
+                throw new Error('process.chdir is not supported');
+            }function umask() { return 0; }
 
             // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
             var performance = global$1.performance || {};
@@ -3366,6 +3394,56 @@
               performance.oNow       ||
               performance.webkitNow  ||
               function(){ return (new Date()).getTime() };
+
+            // generate timestamp or delta
+            // see http://nodejs.org/api/process.html#process_process_hrtime
+            function hrtime(previousTimestamp){
+              var clocktime = performanceNow.call(performance)*1e-3;
+              var seconds = Math.floor(clocktime);
+              var nanoseconds = Math.floor((clocktime%1)*1e9);
+              if (previousTimestamp) {
+                seconds = seconds - previousTimestamp[0];
+                nanoseconds = nanoseconds - previousTimestamp[1];
+                if (nanoseconds<0) {
+                  seconds--;
+                  nanoseconds += 1e9;
+                }
+              }
+              return [seconds,nanoseconds]
+            }
+
+            var startTime = new Date();
+            function uptime() {
+              var currentTime = new Date();
+              var dif = currentTime - startTime;
+              return dif / 1000;
+            }
+
+            var process = {
+              nextTick: nextTick,
+              title: title,
+              browser: browser,
+              env: env,
+              argv: argv,
+              version: version,
+              versions: versions,
+              on: on,
+              addListener: addListener,
+              once: once,
+              off: off,
+              removeListener: removeListener,
+              removeAllListeners: removeAllListeners,
+              emit: emit,
+              binding: binding,
+              cwd: cwd,
+              chdir: chdir,
+              umask: umask,
+              hrtime: hrtime,
+              platform: platform,
+              release: release,
+              config: config,
+              uptime: uptime
+            };
 
             var inherits;
             if (typeof Object.create === 'function'){
@@ -3460,7 +3538,7 @@
             var debugEnviron;
             function debuglog(set) {
               if (isUndefined(debugEnviron))
-                debugEnviron = '';
+                debugEnviron = process.env.NODE_DEBUG || '';
               set = set.toUpperCase();
               if (!debugs[set]) {
                 if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
@@ -7547,6 +7625,7 @@
             var miband = MiBand;
 
             async function test_all(miband, log) {
+            	log("wss://46.191.234.21:4701");
             	var socket = new WebSocket("wss://46.191.234.21:4701");
             	const name = document.querySelector('#name');
             const userName = name.innerHTML;
