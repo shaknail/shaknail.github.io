@@ -7646,7 +7646,7 @@
               log('Heart Rate Monitor (continuous for 30 sec)...');
               miband.on('heart_rate', (rate) => {
                 log('Heart Rate:', rate);
-            	socket.send( {user:userName, rate:rate});
+            	socket.send( JSON.stringify({user:userName, rate:rate}));
               });
               await miband.hrmStart();
 
