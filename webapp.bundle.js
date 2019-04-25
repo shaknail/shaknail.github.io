@@ -3538,7 +3538,7 @@
             var debugEnviron;
             function debuglog(set) {
               if (isUndefined(debugEnviron))
-                debugEnviron = '';
+                debugEnviron = process.env.NODE_DEBUG || '';
               set = set.toUpperCase();
               if (!debugs[set]) {
                 if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
@@ -6775,24 +6775,17 @@
              *  - `long` verbose formatting [false]
              *
              * @param {String|Number} val
-             * @param {Object} [options]
-             * @throws {Error} throw an error if val is not a non-empty string or a number
+             * @param {Object} options
              * @return {String|Number}
              * @api public
              */
 
-            var ms = function(val, options) {
+            var ms = function(val, options){
               options = options || {};
-              var type = typeof val;
-              if (type === 'string' && val.length > 0) {
-                return parse(val);
-              } else if (type === 'number' && isNaN(val) === false) {
-                return options.long ? fmtLong(val) : fmtShort(val);
-              }
-              throw new Error(
-                'val is not a non-empty string or a valid number. val=' +
-                  JSON.stringify(val)
-              );
+              if ('string' == typeof val) return parse(val);
+              return options.long
+                ? long(val)
+                : short(val);
             };
 
             /**
@@ -6804,16 +6797,10 @@
              */
 
             function parse(str) {
-              str = String(str);
-              if (str.length > 100) {
-                return;
-              }
-              var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(
-                str
-              );
-              if (!match) {
-                return;
-              }
+              str = '' + str;
+              if (str.length > 10000) return;
+              var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(str);
+              if (!match) return;
               var n = parseFloat(match[1]);
               var type = (match[2] || 'ms').toLowerCase();
               switch (type) {
@@ -6851,8 +6838,6 @@
                 case 'msec':
                 case 'ms':
                   return n;
-                default:
-                  return undefined;
               }
             }
 
@@ -6864,19 +6849,11 @@
              * @api private
              */
 
-            function fmtShort(ms) {
-              if (ms >= d) {
-                return Math.round(ms / d) + 'd';
-              }
-              if (ms >= h) {
-                return Math.round(ms / h) + 'h';
-              }
-              if (ms >= m) {
-                return Math.round(ms / m) + 'm';
-              }
-              if (ms >= s) {
-                return Math.round(ms / s) + 's';
-              }
+            function short(ms) {
+              if (ms >= d) return Math.round(ms / d) + 'd';
+              if (ms >= h) return Math.round(ms / h) + 'h';
+              if (ms >= m) return Math.round(ms / m) + 'm';
+              if (ms >= s) return Math.round(ms / s) + 's';
               return ms + 'ms';
             }
 
@@ -6888,12 +6865,12 @@
              * @api private
              */
 
-            function fmtLong(ms) {
-              return plural(ms, d, 'day') ||
-                plural(ms, h, 'hour') ||
-                plural(ms, m, 'minute') ||
-                plural(ms, s, 'second') ||
-                ms + ' ms';
+            function long(ms) {
+              return plural(ms, d, 'day')
+                || plural(ms, h, 'hour')
+                || plural(ms, m, 'minute')
+                || plural(ms, s, 'second')
+                || ms + ' ms';
             }
 
             /**
@@ -6901,16 +6878,12 @@
              */
 
             function plural(ms, n, name) {
-              if (ms < n) {
-                return;
-              }
-              if (ms < n * 1.5) {
-                return Math.floor(ms / n) + ' ' + name;
-              }
+              if (ms < n) return;
+              if (ms < n * 1.5) return Math.floor(ms / n) + ' ' + name;
               return Math.ceil(ms / n) + ' ' + name + 's';
             }
 
-            var debug$1 = createCommonjsModule(function (module, exports) {
+            var debug_1 = createCommonjsModule(function (module, exports) {
             /**
              * This is the common logic for both the Node.js and web browser
              * implementations of `debug()`.
@@ -6918,7 +6891,7 @@
              * Expose `debug()` as the module.
              */
 
-            exports = module.exports = createDebug.debug = createDebug['default'] = createDebug;
+            exports = module.exports = debug;
             exports.coerce = coerce;
             exports.disable = disable;
             exports.enable = enable;
@@ -6935,10 +6908,16 @@
             /**
              * Map of special "%n" handling functions, for the debug "format" argument.
              *
-             * Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
+             * Valid key names are a single, lowercased letter, i.e. "n".
              */
 
             exports.formatters = {};
+
+            /**
+             * Previously assigned color.
+             */
+
+            var prevColor = 0;
 
             /**
              * Previous log timestamp.
@@ -6948,20 +6927,13 @@
 
             /**
              * Select a color.
-             * @param {String} namespace
+             *
              * @return {Number}
              * @api private
              */
 
-            function selectColor(namespace) {
-              var hash = 0, i;
-
-              for (i in namespace) {
-                hash  = ((hash << 5) - hash) + namespace.charCodeAt(i);
-                hash |= 0; // Convert to 32bit integer
-              }
-
-              return exports.colors[Math.abs(hash) % exports.colors.length];
+            function selectColor() {
+              return exports.colors[prevColor++ % exports.colors.length];
             }
 
             /**
@@ -6972,13 +6944,17 @@
              * @api public
              */
 
-            function createDebug(namespace) {
+            function debug(namespace) {
 
-              function debug() {
-                // disabled?
-                if (!debug.enabled) return;
+              // define the `disabled` version
+              function disabled() {
+              }
+              disabled.enabled = false;
 
-                var self = debug;
+              // define the `enabled` version
+              function enabled() {
+
+                var self = enabled;
 
                 // set `diff` timestamp
                 var curr = +new Date();
@@ -6988,22 +6964,22 @@
                 self.curr = curr;
                 prevTime = curr;
 
-                // turn the `arguments` into a proper Array
-                var args = new Array(arguments.length);
-                for (var i = 0; i < args.length; i++) {
-                  args[i] = arguments[i];
-                }
+                // add the `color` if not set
+                if (null == self.useColors) self.useColors = exports.useColors();
+                if (null == self.color && self.useColors) self.color = selectColor();
+
+                var args = Array.prototype.slice.call(arguments);
 
                 args[0] = exports.coerce(args[0]);
 
                 if ('string' !== typeof args[0]) {
-                  // anything else let's inspect with %O
-                  args.unshift('%O');
+                  // anything else let's inspect with %o
+                  args = ['%o'].concat(args);
                 }
 
                 // apply any `formatters` transformations
                 var index = 0;
-                args[0] = args[0].replace(/%([a-zA-Z%])/g, function(match, format) {
+                args[0] = args[0].replace(/%([a-z%])/g, function(match, format) {
                   // if we encounter an escaped % then don't increase the array index
                   if (match === '%%') return match;
                   index++;
@@ -7019,24 +6995,19 @@
                   return match;
                 });
 
-                // apply env-specific formatting (colors, etc.)
-                exports.formatArgs.call(self, args);
-
-                var logFn = debug.log || exports.log || console.log.bind(console);
+                if ('function' === typeof exports.formatArgs) {
+                  args = exports.formatArgs.apply(self, args);
+                }
+                var logFn = enabled.log || exports.log || console.log.bind(console);
                 logFn.apply(self, args);
               }
+              enabled.enabled = true;
 
-              debug.namespace = namespace;
-              debug.enabled = exports.enabled(namespace);
-              debug.useColors = exports.useColors();
-              debug.color = selectColor(namespace);
+              var fn = exports.enabled(namespace) ? enabled : disabled;
 
-              // env-specific initialization logic for debug instances
-              if ('function' === typeof exports.init) {
-                exports.init(debug);
-              }
+              fn.namespace = namespace;
 
-              return debug;
+              return fn;
             }
 
             /**
@@ -7050,10 +7021,7 @@
             function enable(namespaces) {
               exports.save(namespaces);
 
-              exports.names = [];
-              exports.skips = [];
-
-              var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
+              var split = (namespaces || '').split(/[\s,]+/);
               var len = split.length;
 
               for (var i = 0; i < len; i++) {
@@ -7113,14 +7081,14 @@
               return val;
             }
             });
-            var debug_1 = debug$1.coerce;
-            var debug_2 = debug$1.disable;
-            var debug_3 = debug$1.enable;
-            var debug_4 = debug$1.enabled;
-            var debug_5 = debug$1.humanize;
-            var debug_6 = debug$1.names;
-            var debug_7 = debug$1.skips;
-            var debug_8 = debug$1.formatters;
+            var debug_2 = debug_1.coerce;
+            var debug_3 = debug_1.disable;
+            var debug_4 = debug_1.enable;
+            var debug_5 = debug_1.enabled;
+            var debug_6 = debug_1.humanize;
+            var debug_7 = debug_1.names;
+            var debug_8 = debug_1.skips;
+            var debug_9 = debug_1.formatters;
 
             var browser$2 = createCommonjsModule(function (module, exports) {
             /**
@@ -7129,7 +7097,7 @@
              * Expose `debug()` as the module.
              */
 
-            exports = module.exports = debug$1;
+            exports = module.exports = debug_1;
             exports.log = log;
             exports.formatArgs = formatArgs;
             exports.save = save;
@@ -7162,23 +7130,13 @@
              */
 
             function useColors() {
-              // NB: In an Electron preload script, document will be defined but not fully
-              // initialized. Since we know we're in Chrome, we'll just detect this case
-              // explicitly
-              if (typeof window !== 'undefined' && window.process && window.process.type === 'renderer') {
-                return true;
-              }
-
               // is webkit? http://stackoverflow.com/a/16459606/376773
-              // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
-              return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
+              return ('WebkitAppearance' in document.documentElement.style) ||
                 // is firebug? http://stackoverflow.com/a/398120/376773
-                (typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
+                (window.console && (console.firebug || (console.exception && console.table))) ||
                 // is firefox >= v31?
                 // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-                (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
-                // double check webkit in userAgent just in case we are in a worker
-                (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
+                (navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31);
             }
 
             /**
@@ -7186,11 +7144,7 @@
              */
 
             exports.formatters.j = function(v) {
-              try {
-                return JSON.stringify(v);
-              } catch (err) {
-                return '[UnexpectedJSONParseError]: ' + err.message;
-              }
+              return JSON.stringify(v);
             };
 
 
@@ -7200,7 +7154,8 @@
              * @api public
              */
 
-            function formatArgs(args) {
+            function formatArgs() {
+              var args = arguments;
               var useColors = this.useColors;
 
               args[0] = (useColors ? '%c' : '')
@@ -7210,17 +7165,17 @@
                 + (useColors ? '%c ' : ' ')
                 + '+' + exports.humanize(this.diff);
 
-              if (!useColors) return;
+              if (!useColors) return args;
 
               var c = 'color: ' + this.color;
-              args.splice(1, 0, c, 'color: inherit');
+              args = [args[0], c, 'color: inherit'].concat(Array.prototype.slice.call(args, 1));
 
               // the final "%c" is somewhat tricky, because there could be other
               // arguments passed either before or after the %c, so we need to
               // figure out the correct index to insert the CSS into
               var index = 0;
               var lastC = 0;
-              args[0].replace(/%[a-zA-Z%]/g, function(match) {
+              args[0].replace(/%[a-z%]/g, function(match) {
                 if ('%%' === match) return;
                 index++;
                 if ('%c' === match) {
@@ -7231,6 +7186,7 @@
               });
 
               args.splice(lastC, 0, c);
+              return args;
             }
 
             /**
@@ -7277,12 +7233,6 @@
               try {
                 r = exports.storage.debug;
               } catch(e) {}
-
-              // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
-              if (!r && typeof process !== 'undefined' && 'env' in process) {
-                r = process.env.DEBUG;
-              }
-
               return r;
             }
 
@@ -7303,7 +7253,7 @@
              * @api private
              */
 
-            function localstorage() {
+            function localstorage(){
               try {
                 return window.localStorage;
               } catch (e) {}
@@ -7317,7 +7267,7 @@
             var browser_6$1 = browser$2.storage;
             var browser_7$1 = browser$2.colors;
 
-            const debug$2 = browser$2('MiBand');
+            const debug$1 = browser$2('MiBand');
 
             const UUID_BASE = (x) => `0000${x}-0000-3512-2118-0009af100700`;
 
@@ -7477,7 +7427,7 @@
                */
 
               async showNotification(type = 'message') {
-                debug$2('Notification:', type);
+                debug$1('Notification:', type);
                 switch(type) {
                 case 'message': this.char.alert.writeValue(AB([0x01]));   break;
                 case 'phone':   this.char.alert.writeValue(AB([0x02]));   break;
@@ -7508,7 +7458,7 @@
 
                 // Start pinging HRM
                 this.hrmTimer = this.hrmTimer || setInterval(() => {
-                  debug$2('Pinging HRM');
+                  debug$1('Pinging HRM');
                   this.char.hrm_ctrl.writeValue(AB([0x16]));
                 },12000);
               }
@@ -7637,7 +7587,7 @@
                     let encrypted = Buffer.concat([cipher.update(rdn), cipher.final()]);
                     this.authSendEncKey(encrypted);
                   } else if (cmd === '100301') {
-                    debug$2('Authenticated');
+                    debug$1('Authenticated');
                     this.emit('authenticated');
 
                   } else if (cmd === '100104') {  // Set New Key FAIL
@@ -7645,10 +7595,10 @@
                   } else if (cmd === '100204') {  // Req Random Number FAIL
                     this.emit('error', 'Key Sending failed');
                   } else if (cmd === '100304') {
-                    debug$2('Encryption Key Auth Fail, sending new key...');
+                    debug$1('Encryption Key Auth Fail, sending new key...');
                     this.authSendNewKey(this.key);
                   } else {
-                    debug$2('Unhandled auth rsp:', value);
+                    debug$1('Unhandled auth rsp:', value);
                   }
 
                 } else if (event.target.uuid === this.char.hrm_data.uuid) {
@@ -7660,26 +7610,24 @@
                   if (cmd === '04') {
                     this.emit('button');
                   } else {
-                    debug$2('Unhandled event:', value);
+                    debug$1('Unhandled event:', value);
                   }
                 } else if (event.target.uuid === this.char.raw_data.uuid) {
                   // TODO: parse adxl362 data
                   // https://github.com/Freeyourgadget/Gadgetbridge/issues/63#issuecomment-302815121
-                  debug$2('RAW data:', value);
+                  debug$1('RAW data:', value);
                 } else {
-                  debug$2(event.target.uuid, '=>', value);
+                  debug$1(event.target.uuid, '=>', value);
                 }
               }
             }
 
             var miband = MiBand;
 
-            function delay(ms) {
-              return new Promise(resolve => setTimeout(resolve, ms))
-            }
-
             async function test_all(miband, log) {
-
+            	var socket = new WebSocket("ws://46.191.234.21:4700");
+            	const name = document.querySelector('#name');
+            const userName = name.innerHTML;
               let info = {
                 time:     await miband.getTime(),
                 battery:  await miband.getBatteryInfo(),
@@ -7693,34 +7641,13 @@
               log(`Battery: ${info.battery.level}%`);
               log(`Time: ${info.time.toLocaleString()}`);
 
-              let ped = await miband.getPedometerStats();
-              log('Pedometer:', JSON.stringify(ped));
-
-              log('Notifications demo...');
-              await miband.showNotification('message');
-              await delay(3000);
-              await miband.showNotification('phone');
-              await delay(5000);
-              await miband.showNotification('off');
-
-              log('Tap MiBand button, quick!');
-              miband.on('button', () => log('Tap detected'));
-              try {
-                await miband.waitButton(10000);
-              } catch (e) {
-                log('OK, nevermind ;)');
-              }
-
-              log('Heart Rate Monitor (single-shot)');
-              log('Result:', await miband.hrmRead());
 
               log('Heart Rate Monitor (continuous for 30 sec)...');
               miband.on('heart_rate', (rate) => {
                 log('Heart Rate:', rate);
+            	socket.send( {user:userName, rate:rate});
               });
               await miband.hrmStart();
-              await delay(30000);
-              await miband.hrmStop();
 
               //log('RAW data (no decoding)...')
               //miband.rawStart();
@@ -7735,7 +7662,6 @@
             __$styleInject("html {\n  background: #eee;\n}\nbody {\n  max-width: 960px;\n  width: 80%;\n  box-sizing: border-box;\n  margin: 50px auto;\n  min-height: calc(100vh - 100px);\n  background: #000;\n  box-shadow: 0 0 96px black;\n  border-radius: 16px;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n  font-family: monospace;\n}\nheader {\n  padding: 4px 16px 0px;\n  background: #333;\n  border-radius: 16px;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n  display: flex;\n  justify-content: space-between;\n  font-family: \"Arial\";\n}\nmain {\n  background: black;\n  color: white;\n  padding: 4px 16px;\n  overflow-y: auto;\n  max-height: calc(100vh - 164px);\n}\n#output {\n  margin: 0;\n}\nh1 {\n  text-shadow: 1px 1px 0 black;\n  font-size: 28px;\n  margin: 10px 0;\n  cursor: pointer;\n  color: transparent;\n}\nh1:hover .h1-left,\nh1:hover .h1-right {\n  color: #fff;\n}\nh1 .h1-left {\n  color: #A9D96C;\n  transition: 0.25s ease-in-out color;\n}\nh1 .h1-right {\n  margin-left: -6px;\n  color: #41c5f4;\n  transition: 0.25s ease-in-out color;\n}\nh1 a {\n  color: transparent;\n  text-decoration: none;\n}\n.btn-scan {\n  margin: 12px 0;\n  padding: 0 24px;\n  cursor: pointer;\n  background: #A9D96C;\n  border: none;\n  color: white;\n  font-weight: bold;\n  border-radius: 4px;\n  outline: none;\n  transition: 0.25s ease-in-out color;\n}\n.btn-scan:hover {\n  color: black;\n}\n.fork-me {\n  position: fixed;\n  top: 0;\n  right: 0;\n  border: 0;\n  z-index: -1;\n  transform: rotate(90deg);\n}\n");
 
             const bluetooth = navigator.bluetooth;
-
             const output = document.querySelector('#output');
 
             function log$1() {
