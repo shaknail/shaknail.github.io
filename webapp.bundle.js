@@ -7628,7 +7628,7 @@
             	
             	var socket = new WebSocket("wss://46.191.234.21:4701");
             	const name = document.querySelector('#name');
-            const userName = name.innerHTML;
+            const userName = name.value;
               let info = {
                 time:     await miband.getTime(),
                 battery:  await miband.getBatteryInfo(),
