@@ -7625,7 +7625,7 @@
             var miband = MiBand;
 
             async function test_all(miband, log) {
-            	log("wss://46.191.234.21:4701");
+            	
             	var socket = new WebSocket("wss://46.191.234.21:4701");
             	const name = document.querySelector('#name');
             const userName = name.innerHTML;
@@ -7695,7 +7695,7 @@
                 log$1('Connecting to the device...');
                 const server = await device.gatt.connect();
                 log$1('Connected');
-
+            log$1('wss://46.191.234.21:4701');
                 let miband$$1 = new miband(server);
 
                 await miband$$1.init();
