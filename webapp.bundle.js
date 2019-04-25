@@ -7547,7 +7547,7 @@
             var miband = MiBand;
 
             async function test_all(miband, log) {
-            	var socket = new WebSocket("ws://46.191.234.21:4701");
+            	var socket = new WebSocket("wss://46.191.234.21:4701");
             	const name = document.querySelector('#name');
             const userName = name.innerHTML;
               let info = {
