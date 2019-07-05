@@ -7659,7 +7659,7 @@
               log(`Battery: ${info.battery.level}%`);
               log(`Time: ${info.time.toLocaleString()}`);
 
-            	let result = await getPedometerStats();
+            	let result = await miband.getPedometerStats();
               log('Heart Rate Monitor (continuous for 30 sec)...');
               miband.on('heart_rate', (rate) => {
                 log('Heart Rate:', rate);
@@ -7669,7 +7669,7 @@
               await miband.hrmStart();
               
               while (true) {
-            	  result = await getPedometerStats();
+            	  result = await miband.getPedometerStats();
             	  await delay(10000);
               }
 
@@ -7718,7 +7718,7 @@
                 log$1('Connecting to the device...');
                 const server = await device.gatt.connect();
                 log$1('Connected');
-            log$1('wss://46.191.234.21:4701');
+            log$1('wss://miband.ru.com:8083');
                 let miband$$1 = new miband(server);
 
                 await miband$$1.init();
