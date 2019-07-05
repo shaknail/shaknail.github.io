@@ -3356,6 +3356,34 @@
             Item.prototype.run = function () {
                 this.fun.apply(null, this.array);
             };
+            var title = 'browser';
+            var platform = 'browser';
+            var browser = true;
+            var env = {};
+            var argv = [];
+            var version = ''; // empty string to avoid regexp issues
+            var versions = {};
+            var release = {};
+            var config = {};
+
+            function noop() {}
+
+            var on = noop;
+            var addListener = noop;
+            var once = noop;
+            var off = noop;
+            var removeListener = noop;
+            var removeAllListeners = noop;
+            var emit = noop;
+
+            function binding(name) {
+                throw new Error('process.binding is not supported');
+            }
+
+            function cwd () { return '/' }
+            function chdir (dir) {
+                throw new Error('process.chdir is not supported');
+            }function umask() { return 0; }
 
             // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
             var performance = global$1.performance || {};
@@ -3366,6 +3394,56 @@
               performance.oNow       ||
               performance.webkitNow  ||
               function(){ return (new Date()).getTime() };
+
+            // generate timestamp or delta
+            // see http://nodejs.org/api/process.html#process_process_hrtime
+            function hrtime(previousTimestamp){
+              var clocktime = performanceNow.call(performance)*1e-3;
+              var seconds = Math.floor(clocktime);
+              var nanoseconds = Math.floor((clocktime%1)*1e9);
+              if (previousTimestamp) {
+                seconds = seconds - previousTimestamp[0];
+                nanoseconds = nanoseconds - previousTimestamp[1];
+                if (nanoseconds<0) {
+                  seconds--;
+                  nanoseconds += 1e9;
+                }
+              }
+              return [seconds,nanoseconds]
+            }
+
+            var startTime = new Date();
+            function uptime() {
+              var currentTime = new Date();
+              var dif = currentTime - startTime;
+              return dif / 1000;
+            }
+
+            var process = {
+              nextTick: nextTick,
+              title: title,
+              browser: browser,
+              env: env,
+              argv: argv,
+              version: version,
+              versions: versions,
+              on: on,
+              addListener: addListener,
+              once: once,
+              off: off,
+              removeListener: removeListener,
+              removeAllListeners: removeAllListeners,
+              emit: emit,
+              binding: binding,
+              cwd: cwd,
+              chdir: chdir,
+              umask: umask,
+              hrtime: hrtime,
+              platform: platform,
+              release: release,
+              config: config,
+              uptime: uptime
+            };
 
             var inherits;
             if (typeof Object.create === 'function'){
@@ -3460,7 +3538,7 @@
             var debugEnviron;
             function debuglog(set) {
               if (isUndefined(debugEnviron))
-                debugEnviron = '';
+                debugEnviron = process.env.NODE_DEBUG || '';
               set = set.toUpperCase();
               if (!debugs[set]) {
                 if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
@@ -7546,9 +7624,25 @@
 
             var miband = MiBand;
 
+            function delay(ms) {
+              return new Promise(resolve => setTimeout(resolve, ms))
+            }
+
             async function test_all(miband, log) {
-            	
-            	var socket = new WebSocket("wss://miband.ru.com:4701");
+            	var lat = "";
+            	var lon = "";
+            	function getLocation() {
+            	  if (navigator.geolocation) {
+            		navigator.geolocation.getCurrentPosition(showPosition);
+            	  } 
+            	}
+
+            	function showPosition(position) {
+            	  lat =  position.coords.latitude;
+            	  lon = position.coords.longitude; 
+            	}
+            	getLocation();
+            	var socket = new WebSocket("wss://miband.ru.com:8083");
             	const name = document.querySelector('#name');
             const userName = name.value;
               let info = {
@@ -7556,7 +7650,8 @@
                 battery:  await miband.getBatteryInfo(),
                 hw_ver:   await miband.getHwRevision(),
                 sw_ver:   await miband.getSwRevision(),
-                serial:   await miband.getSerial(),
+                serial:   await miband.getSerial()
+            	
               };
 
               log(`HW ver: ${info.hw_ver}  SW ver: ${info.sw_ver}`);
@@ -7564,14 +7659,19 @@
               log(`Battery: ${info.battery.level}%`);
               log(`Time: ${info.time.toLocaleString()}`);
 
-
+            	let result = await getPedometerStats();
               log('Heart Rate Monitor (continuous for 30 sec)...');
               miband.on('heart_rate', (rate) => {
                 log('Heart Rate:', rate);
-            	log(JSON.stringify({user:userName, rate:rate}));
-            	socket.send( JSON.stringify({user:userName, rate:rate}));
+            	log(JSON.stringify({user:userName, rate:rate, lat:lat, lon:lon}));
+            	socket.send( JSON.stringify({id:userName, rate:rate, steps: info.result.steps, action:"monitoring", lat:lat, lon:lon}));
               });
               await miband.hrmStart();
+              
+              while (true) {
+            	  result = await getPedometerStats();
+            	  await delay(10000);
+              }
 
               //log('RAW data (no decoding)...')
               //miband.rawStart();
