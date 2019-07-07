@@ -7636,7 +7636,7 @@
             		navigator.geolocation.getCurrentPosition(showPosition);
             	  } 
             	}
-
+            	log('version 07.07.19 18:02');
             	function showPosition(position) {
             	  lat =  position.coords.latitude;
             	  lon = position.coords.longitude; 
