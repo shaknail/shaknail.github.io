@@ -7663,8 +7663,9 @@
               log('Heart Rate Monitor (continuous for 30 sec)...');
               miband.on('heart_rate', (rate) => {
                 log('Heart Rate:', rate);
-            	log(JSON.stringify({user:userName, rate:rate, lat:lat, lon:lon}));
-            	socket.send( JSON.stringify({id:userName, rate:rate, steps: info.result.steps, action:"monitoring", lat:lat, lon:lon}));
+            	log('Steps:', info.result.steps);
+            	log(JSON.stringify({id:userName, rate:rate, steps: info.result.steps, action:"monitoring", lat:lat, lon:lon}));
+            	socket.send(JSON.stringify({id:userName, rate:rate, steps: info.result.steps, action:"monitoring", lat:lat, lon:lon}));
               });
               await miband.hrmStart();
               
