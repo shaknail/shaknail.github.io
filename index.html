@@ -1,36 +1,98 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="mobile-web-app-capable" content="yes">
+<!DOCTYPE html>
+<html class="page  no-js" lang="ru">
 
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="manifest" href="manifest.json">
-    <!-- link rel="stylesheet" href="styles.css" -->
+<head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="css/uikit.min.css" />
+        <script src="js/uikit.min.js"></script>
+        <script src="js/uikit-icons.min.js"></script>
+<link href="//deliveryWiget.iiko.ru/v2_0/assets/css/style.css" rel="stylesheet" type="text/css" media="screen" />
+<script type="text/javascript">
+	window.restaurant = "ab01366b-25e9-11e5-80d2-d8d38565926f"
+</script>
+<script data-main="//deliverywiget.iiko.ru/v2_0/app/config" src="//deliverywiget.iiko.ru/v2_0/libs/require.js"></script>
+</head>
 
-    <title>Mi Band Testing</title>
-  </head>
+<body>
+  <noscript>У вас отключен JavaScript. Это пугает.</noscript>
+  <div class="page__inner">
+    <div class="page__content">
+      <header class="page-header uk-light" role="banner">
+        <div class="uk-container">
+          <div class="uk-navbar">
+            <div class="uk-navbar-left"><a class="uk-navbar-item uk-logo" href="/"><img src="img/logo-light.png" alt="логотип Ресторан Пермь – Gastroport"></a></div>
+          </div>
+        </div>
+      </header>
+      <div class="uk-section-small" id="jstore-css">
+        <div class="uk-container">
+          <div uk-grid>
+            <div class="uk-width-1-3">
+              <sidebar>
+                <div class="jstore-block lsp-block-restinfo" id="lsp-block-restinfo"></div>
+                <div class="jstore-block lsp-block-userinfo" id="lsp-block-userinfo"></div>
+                <div class="jstore-block lsp-block-cart" id="lsp-block-cart"></div>
+                <div class="jstore-block lsp-block-tree" id="lsp-block-menu-tree"></div>
+              </sidebar>
+            </div>
+            <div class="uk-width-2-3">
+              <div class="middle">
+                <div class="jstore-block lsp-block-breadcrumbs" id="lsp-block-breadcrumbs"></div>
+                <div class="jstore-block lsp-block-content" id="lsp-block-content"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page__footer-wrapper">
+      <footer class="page-footer uk-light" role="contentinfo">
+        <div class="uk-container">
+          <div uk-grid>
+            <div class="uk-width-1-3@s">
+              <div class="uk-h2">Контакты</div>
+            </div>
+            <div class="uk-width-2-3@s">
+              <div class="uk-flex uk-flex-right">
+                <div>
+                  <ul class="uk-nav">
+                    <li><a href="#">Ресторан</a></li>
+                    <li><a href="tel:+73422018080"><span>+7 (342) 201-80-80</span></a></li>
+                  </ul>
+                  <ul class="uk-iconnav footer-social">
+                    <li><a href="https://www.facebook.com/gastroportbanket" target="_blank" rel="nofollow" uk-icon="icon: facebook"></a></li>
+                    <li><a href="https://vk.com/gastroport_banket" target="_blank" rel="nofollow"><img src="img/icon-vk.svg" uk-svg></a></li>
+                    <li><a href="https://www.instagram.com/banket.gastroport" target="_blank" rel="nofollow" uk-icon="icon: instagram"></a></li>
+                    <li><a href="https://www.youtube.com/channel/UCQVVuEaOa7Q4wshx0WpYYcQ" target="_blank" rel="nofollow" uk-icon="icon: youtube"></a></li>
+                  </ul>
+                </div>
+                <div class="uk-margin-large-left">
+                  <ul class="uk-nav">
+                    <li><a href="#">Кейтеринг</a></li>
+                    <li><a href="tel:+73422018070"><span>+7 (342) 201-80-80</span></a></li>
+                  </ul>
+                  <ul class="uk-iconnav footer-social">
+                    <li><a href="https://www.facebook.com/gastroportbanket" target="_blank" rel="nofollow" uk-icon="icon: facebook"></a></li>
+                    <li><a href="https://vk.com/gastroport_banket" target="_blank" rel="nofollow"><img src="img/icon-vk.svg" uk-svg></a></li>
+                    <li><a href="https://www.instagram.com/banket.gastroport" target="_blank" rel="nofollow" uk-icon="icon: instagram"></a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+  <div id="offcanvas" uk-offcanvas="overlay: true; flip: true">
+    <div class="uk-offcanvas-bar uk-flex uk-flex-column">
+      <ul class="uk-nav uk-nav-primary uk-nav-center uk-margin-auto-vertical">
+      </ul>
+    </div>
+  </div>
+  <script src="js/bundle.js"></script>
 
-  <body>
+</body>
 
-    <header>
-		<input type="text" id="name"/>
-        <button id="scanBtn" class="btn-scan">Погнали</button>
-    </header>
-
-    <main style="display: none;">
-      <pre id="output"></pre>
-    </main>
-
-    <script src="webapp.bundle.js"></script>
-
-    <script>
-      // Install service worker - for offline support (not working properly, so disabled)
-      /*if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('serviceworker.js');
-      }*/
-    </script>
-  </body>
 </html>
